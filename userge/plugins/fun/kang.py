@@ -43,7 +43,7 @@ from userge.utils import get_response
     allow_via_bot=False,
 )
 async def kang_(message: Message):
-    """ kang a sticker """
+    """kang a sticker"""
     user = await userge.get_me()
     replied = message.reply_to_message
     photo = None
@@ -93,7 +93,7 @@ async def kang_(message: Message):
 
         u_name = user.username
         u_name = "@" + u_name if u_name else user.first_name or user.id
-        packname = f"a{user.id}_by_userge_{pack}"
+        packname = f"a{user.id}_by_x_{pack}"
         custom_packnick = Config.CUSTOM_PACK_NAME or f"{u_name}'s kang pack"
         packnick = f"{custom_packnick} Vol.{pack}"
         cmd = "/newpack"
@@ -228,7 +228,7 @@ async def kang_(message: Message):
     },
 )
 async def sticker_pack_info_(message: Message):
-    """ get sticker pack info """
+    """get sticker pack info"""
     replied = message.reply_to_message
     if not replied:
         await message.edit("`I can't fetch info from nothing, can I ?!`")
@@ -260,7 +260,7 @@ async def sticker_pack_info_(message: Message):
 
 
 def resize_photo(photo: str) -> io.BytesIO:
-    """ Resize the given photo to 512x512 """
+    """Resize the given photo to 512x512"""
     image = Image.open(photo)
     maxsize = 512
     scale = maxsize / max(image.width, image.height)

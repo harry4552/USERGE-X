@@ -12,8 +12,6 @@ from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
 
 from userge import Config, Message, userge
 
-if not os.path.exists("userge/xcache"):
-    os.mkdir("userge/xcache")
 PATH = "userge/xcache/emoji_data.txt"
 CHANNEL = userge.getCLogger(__name__)
 
@@ -142,6 +140,7 @@ def _choice(res):
     },
     allow_channels=False,
     allow_via_bot=False,
+    check_downpath=True,
 )
 async def op_(message: Message):
     replied = message.reply_to_message

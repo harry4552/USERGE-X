@@ -33,7 +33,7 @@ async def _init() -> None:
     "sudo", about={"header": "enable / disable sudo access"}, allow_channels=False
 )
 async def sudo_(message: Message):
-    """ enable / disable sudo access """
+    """enable / disable sudo access"""
     if Config.SUDO_ENABLED:
         Config.SUDO_ENABLED = False
         await message.edit("`sudo disabled !`", del_in=3)
@@ -51,7 +51,7 @@ async def sudo_(message: Message):
     allow_channels=False,
 )
 async def add_sudo(message: Message):
-    """ add sudo user """
+    """add sudo user"""
     user_id = message.input_str
     if message.reply_to_message:
         user_id = message.reply_to_message.from_user.id
@@ -98,7 +98,7 @@ async def add_sudo(message: Message):
     allow_channels=False,
 )
 async def del_sudo(message: Message):
-    """ delete sudo user """
+    """delete sudo user"""
     if "-all" in message.flags:
         Config.SUDO_USERS.clear()
         await asyncio.gather(
@@ -118,7 +118,7 @@ async def del_sudo(message: Message):
         await message.err("invalid type!")
         return
     if user_id not in Config.SUDO_USERS:
-        await message.edit(f"user : `{user_id}` not in **SUDO**!", del_in=5)
+        await message.edit(f"user : `{user_id}` not in **SUDO** !", del_in=5)
     else:
         Config.SUDO_USERS.remove(user_id)
         await asyncio.gather(
@@ -131,7 +131,7 @@ async def del_sudo(message: Message):
 
 @userge.on_cmd("vsudo", about={"header": "view sudo users"}, allow_channels=False)
 async def view_sudo(message: Message):
-    """ view sudo users """
+    """view sudo users"""
     if not Config.SUDO_USERS:
         await message.edit("**SUDO** users not found!", del_in=5)
         return
@@ -145,25 +145,49 @@ async def view_sudo(message: Message):
     "addscmd",
     about={
         "header": "add sudo command",
-        "flags": {"-all": "add all commands to sudo"},
-        "usage": "{tr}addscmd [command name]\n{tr}addscmd -all",
+        "flags": {
+            "-all": "add all commands to sudo ",
+            "-full": "full sudo access [i.e '-all' + term, eval, exec ...] (Dangerous !)",
+        },
+        "usage": "{tr}addscmd [command name]\n{tr}addscmd -all\n{tr}addscmd -full",
     },
     allow_channels=False,
 )
 async def add_sudo_cmd(message: Message):
-    """ add sudo cmd """
-    if "-all" in message.flags:
+    """add sudo cmd"""
+    if "-all" in message.flags or "-full" in message.flags:
         await SUDO_CMDS_COLLECTION.drop()
         Config.ALLOWED_COMMANDS.clear()
         tmp_ = []
         for c_d in list(userge.manager.enabled_commands):
             t_c = c_d.lstrip(Config.CMD_TRIGGER)
-            tmp_.append({"_id": t_c})
-            Config.ALLOWED_COMMANDS.add(t_c)
+            if "-all" in message.flags:
+                mode_ = "all"
+                if not (
+                    t_c
+                    in [
+                        "exec",
+                        "term",
+                        "eval",
+                        "addscmd",
+                        "delscmd",
+                        "load",
+                        "unload",
+                        "addsudo",
+                        "delsudo",
+                        "sudo",
+                    ]
+                ):
+                    tmp_.append({"_id": t_c})
+                    Config.ALLOWED_COMMANDS.add(t_c)
+            else:
+                mode_ = "full"
+                tmp_.append({"_id": t_c})
+                Config.ALLOWED_COMMANDS.add(t_c)
         await asyncio.gather(
             SUDO_CMDS_COLLECTION.insert_many(tmp_),
             message.edit(
-                f"**Added** all (`{len(tmp_)}`) commands to **SUDO** cmds!",
+                f"**Added** {mode_} (`{len(tmp_)}`) commands to **SUDO** cmds!",
                 del_in=5,
                 log=__name__,
             ),
@@ -198,7 +222,7 @@ async def add_sudo_cmd(message: Message):
     allow_channels=False,
 )
 async def del_sudo_cmd(message: Message):
-    """ delete sudo cmd """
+    """delete sudo cmd"""
     if "-all" in message.flags:
         Config.ALLOWED_COMMANDS.clear()
         await asyncio.gather(
@@ -224,7 +248,7 @@ async def del_sudo_cmd(message: Message):
 
 @userge.on_cmd("vscmd", about={"header": "view sudo cmds"}, allow_channels=False)
 async def view_sudo_cmd(message: Message):
-    """ view sudo cmds """
+    """view sudo cmds"""
     if not Config.ALLOWED_COMMANDS:
         await message.edit("**SUDO** cmds not found!", del_in=5)
         return

@@ -1,6 +1,5 @@
 """ setup gban """
 
-
 import asyncio
 from typing import Union
 
@@ -41,7 +40,7 @@ async def _init() -> None:
     allow_channels=False,
 )
 async def antispam_(message: Message):
-    """ enable / disable antispam """
+    """enable / disable antispam"""
     if Config.ANTISPAM_SENTRY:
         Config.ANTISPAM_SENTRY = False
         await message.edit("`antispam disabled !`", del_in=3)
@@ -64,7 +63,7 @@ async def antispam_(message: Message):
     allow_channels=False,
 )
 async def spam_protect_(message: Message):
-    """ enable / disable Intellivoid spam protection """
+    """enable / disable Intellivoid spam protection"""
     if Config.SPAM_PROTECTION:
         Config.SPAM_PROTECTION = False
         await message.edit("`Intellivoid Spam Protection disabled !`", del_in=3)
@@ -91,7 +90,7 @@ async def spam_protect_(message: Message):
     allow_bots=False,
 )
 async def gban_user(message: Message):
-    """ ban a user globally """
+    """ban a user globally"""
     await message.edit("`GBanning...`")
     user_id, reason = message.extract_user_and_text
     if not user_id:
@@ -180,7 +179,7 @@ async def gban_user(message: Message):
     allow_bots=False,
 )
 async def ungban_user(message: Message):
-    """ unban a user globally """
+    """unban a user globally"""
     await message.edit("`UnGBanning...`")
     user_id, _ = message.extract_user_and_text
     if not user_id:
@@ -230,7 +229,7 @@ async def ungban_user(message: Message):
     allow_channels=False,
 )
 async def list_gbanned(message: Message):
-    """ vies gbanned users """
+    """vies gbanned users"""
     msg = ""
     bad_users = ""
     async for c in GBAN_USER_BASE.find():
@@ -275,7 +274,7 @@ async def list_gbanned(message: Message):
     allow_bots=False,
 )
 async def whitelist(message: Message):
-    """ add user to whitelist """
+    """add user to whitelist"""
     user_id, _ = message.extract_user_and_text
     if not user_id:
         await message.err("user-id not found")
@@ -317,7 +316,7 @@ async def whitelist(message: Message):
     allow_bots=False,
 )
 async def rmwhitelist(message: Message):
-    """ remove a user from whitelist """
+    """remove a user from whitelist"""
     user_id, _ = message.extract_user_and_text
     if not user_id:
         await message.err("user-id not found")
@@ -357,7 +356,7 @@ async def rmwhitelist(message: Message):
     allow_channels=False,
 )
 async def list_white(message: Message):
-    """ list whitelist """
+    """list whitelist"""
     msg = ""
     async for c in WHITELIST.find():
         msg += (
@@ -377,7 +376,7 @@ async def list_white(message: Message):
     filters.group & filters.new_chat_members, group=1, check_restrict_perm=True
 )
 async def gban_at_entry(message: Message):
-    """ handle gbans """
+    """handle gbans"""
     chat_id = message.chat.id
     for user in message.new_chat_members:
         user_id = user.id
@@ -483,29 +482,33 @@ async def gban_at_entry(message: Message):
                         ),
                     )
         elif Config.SPAM_WATCH_API:
-            intruder = await _get_spamwatch_data(user_id)
-            if intruder:
-                await asyncio.gather(
-                    message.client.kick_chat_member(chat_id, user_id),
-                    message.reply(
-                        r"\\**#𝑿_Antispam**//"
-                        "\n\nGlobally Banned User Detected in this Chat.\n\n"
-                        "**$SENTRY SpamWatch Federation Ban**\n"
-                        f"**User:** {mention_html(user_id, firstname)}\n"
-                        f"**ID:** `{user_id}`\n**Reason:** `{intruder.reason}`\n\n"
-                        "**Quick Action:** Banned",
-                        del_in=10,
-                    ),
-                    CHANNEL.log(
-                        r"\\**#Antispam_Log**//"
-                        "\n\n**GBanned User $SPOTTED**\n"
-                        "**$SENRTY #SPAMWATCH_API BAN**"
-                        f"\n**User:** {mention_html(user_id, firstname)}\n"
-                        f"**ID:** `{user_id}`\n**Reason:** `{intruder.reason}`\n"
-                        f"**Quick Action:** Banned in {message.chat.title}\n\n"
-                        f"$AUTOBAN #id{user_id}"
-                    ),
-                )
+            try:
+                intruder = await _get_spamwatch_data(user_id)
+            except spamwatch.errors.Error as err:
+                LOG.error(str(err))
+            else:
+                if intruder:
+                    await asyncio.gather(
+                        message.client.kick_chat_member(chat_id, user_id),
+                        message.reply(
+                            r"\\**#𝑿_Antispam**//"
+                            "\n\nGlobally Banned User Detected in this Chat.\n\n"
+                            "**$SENTRY SpamWatch Federation Ban**\n"
+                            f"**User:** {mention_html(user_id, firstname)}\n"
+                            f"**ID:** `{user_id}`\n**Reason:** `{intruder.reason}`\n\n"
+                            "**Quick Action:** Banned",
+                            del_in=10,
+                        ),
+                        CHANNEL.log(
+                            r"\\**#Antispam_Log**//"
+                            "\n\n**GBanned User $SPOTTED**\n"
+                            "**$SENRTY #SPAMWATCH_API BAN**"
+                            f"\n**User:** {mention_html(user_id, firstname)}\n"
+                            f"**ID:** `{user_id}`\n**Reason:** `{intruder.reason}`\n"
+                            f"**Quick Action:** Banned in {message.chat.title}\n\n"
+                            f"$AUTOBAN #id{user_id}"
+                        ),
+                    )
     message.continue_propagation()
 
 

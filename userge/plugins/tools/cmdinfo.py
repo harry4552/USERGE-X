@@ -1,13 +1,21 @@
-# Copyright (C) 2020 BY - GitHub.com/code-rgb [TG - @deleteduser420]
+# Copyright (C) 2021 by USERGE-X
+#
+# Author: GitHub.com/code-rgb [TG - @deleteduser420]
+#
 # All rights reserved.
 
 
 import os
+from re import compile as comp_regex
 
 from git import Repo
+from pyrogram import filters
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from userge import Config, Message, userge
-from userge.utils import humanbytes
+from userge.utils import check_owner, humanbytes
+
+plugin_regex = comp_regex(r"Path[\s:]{1,5}(userge/plugins/\w+/\w+\.py)")
 
 
 @userge.on_cmd(
@@ -45,18 +53,25 @@ async def see_info(message: Message):
     if not found:
         return await message.err("provide a valid command name", del_in=5)
     repo = Repo()
-    branch = repo.active_branch.name
+    try:
+        branch = repo.active_branch.name
+    except Exception:
+        with open(".git/HEAD", "r") as gitfile:
+            branch = gitfile.read().split("/")[-1].strip()
     if branch == "master":
         branch = "alpha"
     plugin_name = userge.manager.commands[cmd_str].plugin_name
     plugin_loc = ("/" + userge.manager.plugins[plugin_name].parent).replace(
         "/plugins", ""
     )
-    if plugin_loc == "/unofficial":
-        unofficial_repo = (
+    if plugin_loc == "/xtra":
+        extra_plugins = (
             "https://github.com/code-rgb/Userge-Plugins/blob/master/plugins/"
         )
-        plugin_link = f"{unofficial_repo}/{plugin_name}.py"
+        plugin_link = f"{extra_plugins}/{plugin_name}.py"
+    elif plugin_loc == "/custom":
+        custom_plugins = os.environ.get("CUSTOM_PLUGINS_REPO", "")
+        plugin_link = f"{custom_plugins}/blob/master/plugins/{plugin_name}.py"
     elif plugin_loc == "/temp":
         plugin_link = False
     else:
@@ -81,14 +96,19 @@ async def see_info(message: Message):
         if len(search_path[1]) == 0:
             s_result += "  ❌  Not Found !"
         else:
-            line_c = 0
-            for line in search_path[1]:
-                line_c += 1
+            for line_c, line in enumerate(search_path[1], start=1):
                 s_result += f"[#L{line}]({plugin_link}#L{line})  "
                 if line_c >= 8:
                     break
         result += "  <b>{}</b>".format(s_result)
-    await message.edit(result, disable_web_page_preview=True)
+    buttons = (
+        InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📤  Upload", callback_data="plugin_upload")]]
+        )
+        if message.client.is_bot
+        else None
+    )
+    await message.edit(result, disable_web_page_preview=True, reply_markup=buttons)
 
 
 def count_lines(cmd_path: str, word: str = None):
@@ -97,8 +117,33 @@ def count_lines(cmd_path: str, word: str = None):
     if word:
         word = word.strip().lower()
     with open(cmd_path, "r") as f:
-        for line in f:
-            num_lines += 1
+        for num_lines, line in enumerate(f, start=1):
             if word and word in line.lower():
                 arr.append(num_lines)
     return num_lines, arr
+
+
+if userge.has_bot:
+
+    @userge.bot.on_callback_query(filters.regex(pattern=r"^plugin_upload$"))
+    @check_owner
+    async def plugin_upload_(c_q: CallbackQuery):
+        if match := plugin_regex.search(c_q.message.text):
+            if os.path.exists(plugin_loc := match.group(1)):
+                p_name = plugin_loc.split("/")[-1]
+                await c_q.answer(f"📤  Uploading - {p_name}")
+                await userge.bot.send_chat_action(
+                    c_q.message.chat.id, "upload_document"
+                )
+                await userge.bot.send_document(
+                    chat_id=c_q.message.chat.id,
+                    document=plugin_loc,
+                    caption=p_name,
+                    parse_mode="html",
+                    disable_notification=True,
+                    reply_to_message_id=c_q.message.message_id,
+                )
+            else:
+                await c_q.answer("❌ ERROR: Plugin Not Found !")
+        else:
+            await c_q.answer()
